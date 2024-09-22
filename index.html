@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="US">
+<head>
+  <title>Get Location</title>
+</head>
+<body>
+  <button id="markAttendance" onclick="getLocation()">Mark Attendance</button>
+  <button id="retryButton" onclick="getLocation()" style="display: none;">Retry Permission</button>
+  <p id="status"></p>
+
+  <script>
+    function getLocation() {
+      document.getElementById('markAttendance').disabled = true; 
+      document.getElementById('retryButton').style.display = 'none'; 
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(showPosition, showError);
+      } else {
+        document.getElementById('status').innerText = "Geolocation is not supported by this browser.";
+        document.getElementById('markAttendance').disabled = false; 
+      }
+    }
+
+    function showPosition(position) {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+
+      document.getElementById('status').innerText = `Latitude: ${latitude}, Longitude: ${longitude}`;
+      sendCoordinatesToBackend(latitude, longitude);
+    }
+
+    function sendCoordinatesToBackend(latitude, longitude) {
+      fetch('http://localhost:3000/attendance/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          latitude: latitude,
+          longitude: longitude,
+        }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(`Backend response: ${data.message}`);
+        document.getElementById('markAttendance').disabled = false; // Re-enable button
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('markAttendance').disabled = false; // Re-enable button
+      });
+    }
+
+    function showError(error) {
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          document.getElementById('status').innerText = "User denied the request for Geolocation.";
+          document.getElementById('retryButton').style.display = 'inline'; // Show retry button
+          break;
+        case error.POSITION_UNAVAILABLE:
+          document.getElementById('status').innerText = "Location information is unavailable.";
+          break;
+        case error.TIMEOUT:
+          document.getElementById('status').innerText = "The request to get user location timed out.";
+          break;
+        case error.UNKNOWN_ERROR:
+          document.getElementById('status').innerText = "An unknown error occurred.";
+          break;
+      }
+      document.getElementById('markAttendance').disabled = false; // Re-enable button
+    }
+  </script>
+</body>
+</html>
